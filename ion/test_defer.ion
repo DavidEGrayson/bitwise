@@ -22,17 +22,17 @@ func defer_to_return() : int {
 func defer_in_for() {
     defer f(1);
     for (i := 0; i < 10; i++) {
-      defer f(2);
-      if (i == 4) {
-          break;
-      }
-      defer f(3);
-      if (i == 5) {
-          continue;
-      }
-      if (i == 6) {
-          return;
-      }
+        defer f(2);
+        if (i == 4) {
+            break;
+        }
+        defer f(3);
+        if (i == 5) {
+            continue;
+        }
+        if (i == 6) {
+            return;
+        }
     }
 }
 
@@ -40,17 +40,17 @@ func defer_in_while() {
     defer f(1);
     i := 0;
     while (i) {
-      defer f(2);
-      if (i == 4) {
-          break;
-      }
-      defer f(3);
-      if (i == 5) {
-          continue;
-      }
-      if (i == 6) {
-          return;
-      }
+        defer f(2);
+        if (i == 4) {
+            break;
+        }
+        defer f(3);
+        if (i == 5) {
+            continue;
+        }
+        if (i == 6) {
+            return;
+        }
     }
 }
 
@@ -137,21 +137,21 @@ func defer_in_defer() {
 }
 
 func defer_unreachable(x : int) : int {
-  defer f(1);
-  if (x) {
-    defer f(2);
-    return 3;
-  }
-  while (x) {
-    if (x == 4) {
-      defer f(5);
-      break;
+    defer f(1);
+    if (x) {
+        defer f(2);
+        return 3;
     }
-    if (x == 6) {
-      defer f(7);
-      continue;
+    while (x) {
+        if (x == 4) {
+            defer f(5);
+            break;
+        }
+        if (x == 6) {
+            defer f(7);
+            continue;
+        }
     }
-  }
-  return 8;
-  defer f(9);
+    return 8;
+    defer f(9);
 }
