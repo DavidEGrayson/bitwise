@@ -135,3 +135,23 @@ func defer_in_defer() {
         return;
     }
 }
+
+func defer_unreachable(x : int) : int {
+  defer f(1);
+  if (x) {
+    defer f(2);
+    return 3;
+  }
+  while (x) {
+    if (x == 4) {
+      defer f(5);
+      break;
+    }
+    if (x == 6) {
+      defer f(7);
+      continue;
+    }
+  }
+  return 8;
+  defer f(9);
+}

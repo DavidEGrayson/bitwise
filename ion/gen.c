@@ -492,6 +492,17 @@ GenCtx gen_ctx_loop(GenCtx ctx) {
     return ctx;
 }
 
+bool stmt_quits(Stmt * stmt) {
+    switch (stmt->kind) {
+    case STMT_RETURN:
+    case STMT_CONTINUE:
+    case STMT_BREAK:
+        return true;
+    default:
+        return false;
+    }
+}
+
 void gen_block(StmtList block, GenCtx ctx, bool is_case) {
     genf("{");
     gen_indent++;
@@ -499,14 +510,18 @@ void gen_block(StmtList block, GenCtx ctx, bool is_case) {
     if (is_case) {
         ctx.defer_level_break = defer_level;
     }
+    bool quitted = false;
     for (size_t i = 0; i < block.num_stmts; i++) {
         gen_stmt(block.stmts[i], ctx);
+        quitted = quitted || stmt_quits(block.stmts[i]);
     }
-    gen_deferred(defer_level);
+    if (!quitted) {
+        gen_deferred(defer_level);
+        if (is_case) {
+            genlnf("break;");
+        }
+    }
     gen_defer_leave(defer_level);
-    if (is_case) {
-        genlnf("break;");
-    }
     gen_indent--;
     genlnf("}");
 }
