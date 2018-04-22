@@ -6,6 +6,12 @@ char *gen_buf = NULL;
 int gen_indent;
 SrcPos gen_pos;
 
+typedef struct GenCtx {
+    Stmt **defer_level_return;
+    Stmt **defer_level_break;
+    Stmt **defer_level_continue;
+} GenCtx;
+
 const char **gen_headers_buf;
 
 const char *gen_preamble =
@@ -447,7 +453,7 @@ void gen_expr(Expr *expr) {
     }
 }
 
-void gen_stmt(Stmt *stmt);
+void gen_stmt(Stmt *stmt, GenCtx ctx);
 
 enum {
     MAX_GEN_DEFERS = 1024
@@ -471,7 +477,7 @@ void gen_deferred(Stmt **defer_level) {
     assert(gen_defers <= defer_level && defer_level <= gen_defers_end);
     Stmt **level = gen_defers_end;
     while (level != defer_level) {
-        gen_stmt(*--level);
+        gen_stmt(*--level, (GenCtx){0});
     }
 }
 
@@ -480,17 +486,37 @@ void gen_defer_leave(Stmt **defer_level) {
     gen_defers_end = defer_level;
 }
 
-void gen_stmt_block(StmtList block) {
+GenCtx gen_ctx_loop(GenCtx ctx) {
+    ctx.defer_level_continue = gen_defer_enter();
+    ctx.defer_level_break = ctx.defer_level_continue;
+    return ctx;
+}
+
+void gen_block(StmtList block, GenCtx ctx, bool is_case) {
     genf("{");
     gen_indent++;
     Stmt **defer_level = gen_defer_enter();
+    if (is_case) {
+        ctx.defer_level_break = defer_level;
+    }
     for (size_t i = 0; i < block.num_stmts; i++) {
-        gen_stmt(block.stmts[i]);
+        gen_stmt(block.stmts[i], ctx);
     }
     gen_deferred(defer_level);
     gen_defer_leave(defer_level);
+    if (is_case) {
+        genlnf("break;");
+    }
     gen_indent--;
     genlnf("}");
+}
+
+void gen_stmt_block(StmtList block, GenCtx ctx) {
+    gen_block(block, ctx, false);
+}
+
+void gen_case_block(StmtList block, GenCtx ctx) {
+    gen_block(block, ctx, true);
 }
 
 void gen_simple_stmt(Stmt *stmt) {
@@ -524,10 +550,11 @@ void gen_simple_stmt(Stmt *stmt) {
     }
 }
 
-void gen_stmt(Stmt *stmt) {
+void gen_stmt(Stmt *stmt, GenCtx ctx) {
     gen_sync_pos(stmt->pos);
     switch (stmt->kind) {
     case STMT_RETURN:
+        gen_deferred(ctx.defer_level_return);
         genlnf("return");
         if (stmt->expr) {
             genf(" ");
@@ -536,14 +563,16 @@ void gen_stmt(Stmt *stmt) {
         genf(";");
         break;
     case STMT_BREAK:
+        gen_deferred(ctx.defer_level_break);
         genlnf("break;");
         break;
     case STMT_CONTINUE:
+        gen_deferred(ctx.defer_level_continue);
         genlnf("continue;");
         break;
     case STMT_BLOCK:
         genln();
-        gen_stmt_block(stmt->block);
+        gen_stmt_block(stmt->block, ctx);
         break;
     case STMT_NOTE:
         if (stmt->note.name == assert_name) {
@@ -557,7 +586,7 @@ void gen_stmt(Stmt *stmt) {
         if (stmt->if_stmt.init) {
             genlnf("{");
             gen_indent++;
-            gen_stmt(stmt->if_stmt.init);
+            gen_stmt(stmt->if_stmt.init, ctx);
         }
         gen_sync_pos(stmt->pos);
         genlnf("if (");
@@ -567,17 +596,17 @@ void gen_stmt(Stmt *stmt) {
             genf("%s", stmt->if_stmt.init->init.name);
         }
         genf(") ");
-        gen_stmt_block(stmt->if_stmt.then_block);
+        gen_stmt_block(stmt->if_stmt.then_block, ctx);
         for (size_t i = 0; i < stmt->if_stmt.num_elseifs; i++) {
             ElseIf elseif = stmt->if_stmt.elseifs[i];
             genf(" else if (");
             gen_expr(elseif.cond);
             genf(") ");
-            gen_stmt_block(elseif.block);
+            gen_stmt_block(elseif.block, ctx);
         }
         if (stmt->if_stmt.else_block.stmts) {
             genf(" else ");
-            gen_stmt_block(stmt->if_stmt.else_block);
+            gen_stmt_block(stmt->if_stmt.else_block, ctx);
         } else {
             Note *complete_note = get_stmt_note(stmt, complete_name);
             if (complete_note) {
@@ -598,11 +627,11 @@ void gen_stmt(Stmt *stmt) {
         genlnf("while (");
         gen_expr(stmt->while_stmt.cond);
         genf(") ");
-        gen_stmt_block(stmt->while_stmt.block);
+        gen_stmt_block(stmt->while_stmt.block, gen_ctx_loop(ctx));
         break;
     case STMT_DO_WHILE:
         genlnf("do ");
-        gen_stmt_block(stmt->while_stmt.block);
+        gen_stmt_block(stmt->while_stmt.block, gen_ctx_loop(ctx));
         genf(" while (");
         gen_expr(stmt->while_stmt.cond);
         genf(");");
@@ -623,12 +652,13 @@ void gen_stmt(Stmt *stmt) {
             gen_simple_stmt(stmt->for_stmt.next);
         }
         genf(") ");
-        gen_stmt_block(stmt->for_stmt.block);
+        gen_stmt_block(stmt->for_stmt.block, gen_ctx_loop(ctx));
         break;
     case STMT_SWITCH: {
         genlnf("switch (");
         gen_expr(stmt->switch_stmt.expr);
         genf(") {");
+        ctx.defer_level_break = gen_defer_enter();
         bool has_default = false;
         for (size_t i = 0; i < stmt->switch_stmt.num_cases; i++) {
             SwitchCase switch_case = stmt->switch_stmt.cases[i];
@@ -643,15 +673,7 @@ void gen_stmt(Stmt *stmt) {
                 genlnf("default:");
             }
             genf(" ");
-            genf("{");
-            gen_indent++;
-            StmtList block = switch_case.block;
-            for (size_t j = 0; j < block.num_stmts; j++) {
-                gen_stmt(block.stmts[j]);
-            }
-            genlnf("break;");
-            gen_indent--;
-            genlnf("}");
+            gen_case_block(switch_case.block, ctx);
         }
         if (!has_default) {
             Note *note = get_stmt_note(stmt, complete_name);
@@ -667,7 +689,6 @@ void gen_stmt(Stmt *stmt) {
         break;
     }
     case STMT_DEFER:
-        genlnf("// deferring");
         gen_defer_push(stmt->deferred);
         break;
     default:
@@ -742,7 +763,8 @@ void gen_defs(void) {
         if (decl->kind == DECL_FUNC) {
             gen_func_decl(decl);
             genf(" ");
-            gen_stmt_block(decl->func.block);
+            GenCtx ctx = { .defer_level_return = gen_defer_enter() };
+            gen_stmt_block(decl->func.block, ctx);
             genln();
         } else if (decl->kind == DECL_VAR) {
             if (decl->var.type && !is_incomplete_array_typespec(decl->var.type)) {

@@ -660,6 +660,7 @@ Type *resolve_decl_func(Decl *decl) {
 }
 
 typedef struct StmtCtx {
+    // TODO: add is_return_legal for deferred stuff
     bool is_break_legal;
     bool is_continue_legal;
 } StmtCtx;
