@@ -875,6 +875,9 @@ bool resolve_stmt(Stmt *stmt, Type *ret_type, StmtCtx ctx) {
         return false;
     case STMT_DEFER:
         ctx = (StmtCtx){ .is_return_not_legal = true };
+        if (stmt->deferred->kind == STMT_INIT) {
+            fatal("Illegal variable initialization");
+        }
         resolve_stmt(stmt->deferred, ret_type, ctx);
         return false;
     default:

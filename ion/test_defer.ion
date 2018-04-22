@@ -113,3 +113,9 @@ func loop_control_in_defer() {
     continue;
   }
 }
+
+func decl_in_defer() {
+  // defer j := 1;    // Illegal (namespace issues)
+  defer { j := 2; }
+}
+
