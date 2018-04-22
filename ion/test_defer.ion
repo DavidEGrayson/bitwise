@@ -2,120 +2,119 @@ func f(x : int) : void {
 }
 
 func defer_to_fallthrough() {
-  defer f(1);
-  {
-    defer f(2);
-    defer f(3);
-  }
+    defer f(1);
+    {
+        defer f(2);
+        defer f(3);
+    }
 }
 
 func defer_to_return() : int {
-  defer f(1);
-  {
-    defer f(2);
-    return 3;
-  }
-  defer f(3);
-  return 4;
+    defer f(1);
+    {
+        defer f(2);
+        return 3;
+    }
+    defer f(3);
+    return 4;
 }
 
 func defer_in_for() {
-  defer f(1);
-  for (i := 0; i < 10; i++) {
-    defer f(2);
-    if (i == 4) {
-      break;
+    defer f(1);
+    for (i := 0; i < 10; i++) {
+      defer f(2);
+      if (i == 4) {
+          break;
+      }
+      defer f(3);
+      if (i == 5) {
+          continue;
+      }
+      if (i == 6) {
+          return;
+      }
     }
-    defer f(3);
-    if (i == 5) {
-      continue;
-    }
-    if (i == 6) {
-      return;
-    }
-  }
 }
 
 func defer_in_while() {
-  defer f(1);
-  i := 0;
-  while (i) {
-    defer f(2);
-    if (i == 4) {
-      break;
+    defer f(1);
+    i := 0;
+    while (i) {
+      defer f(2);
+      if (i == 4) {
+          break;
+      }
+      defer f(3);
+      if (i == 5) {
+          continue;
+      }
+      if (i == 6) {
+          return;
+      }
     }
-    defer f(3);
-    if (i == 5) {
-      continue;
-    }
-    if (i == 6) {
-      return;
-    }
-  }
 }
 
 func defer_in_do_while() {
-  defer f(1);
-  i := 0;
-  do {
-    defer f(2);
-    if (i == 4) {
-      break;
-    }
-    defer f(3);
-    if (i == 5) {
-      continue;
-    }
-    if (i == 6) {
-      return;
-    }
-  } while (i);
+    defer f(1);
+    i := 0;
+    do {
+        defer f(2);
+        if (i == 4) {
+            break;
+        }
+        defer f(3);
+        if (i == 5) {
+            continue;
+        }
+        if (i == 6) {
+            return;
+        }
+    } while (i);
 }
 
 func defer_in_switch() {
-  defer f(1);
+    defer f(1);
 
-  i := 0;
-  while (i) {
-    switch (i) {
-    case 1:
-      defer f(2);
-      if (i == 10) {
-         break;
-      }
-      defer f(3);
-      if (i == 11) {
-        continue;
-      }
-      if (i == 12) {
-        return;
-      }
-    case 2:
-      defer f(3);
-      if (i == 0) { return; }
+    i := 0;
+    while (i) {
+        switch (i) {
+        case 1:
+          defer f(2);
+          if (i == 10) {
+              break;
+          }
+          defer f(3);
+          if (i == 11) {
+              continue;
+          }
+          if (i == 12) {
+              return;
+          }
+        case 2:
+            defer f(3);
+            if (i == 0) { return; }
+        }
     }
-  }
 }
 
 func return_in_defer() {
-   defer {
-     // return; // Illegal
-   }
+    defer {
+        // return; // Illegal
+    }
 }
 
 func loop_control_in_defer() {
-  while (1) {
-    defer {
-      // break;    // Illegal
-      // continue; // Illegal
+    while (1) {
+        defer {
+            // break;    // Illegal
+            // continue; // Illegal
+        }
+        break;
+        continue;
     }
-    break;
-    continue;
-  }
 }
 
-func decl_in_defer() {
-  // defer j := 1;    // Illegal (namespace issues)
-  defer { j := 2; }
+func init_in_defer() {
+    // defer j := 1;    // Illegal (namespace issues)
+    defer { j := 2; }
 }
-
