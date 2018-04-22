@@ -118,3 +118,20 @@ func init_in_defer() {
     // defer j := 1;    // Illegal (namespace issues)
     defer { j := 2; }
 }
+
+func defer_in_defer() {
+    // defer defer f(1);   // Illegal (we don't generate it properly)
+
+    defer { defer f(2); }
+
+    defer {
+        defer f(3);
+        while (1) {
+            defer f(4);
+            break;
+        }
+    }
+    if (1) {
+        return;
+    }
+}
