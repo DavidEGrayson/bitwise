@@ -523,6 +523,7 @@ Stmt *parse_stmt(void) {
     Notes notes = parse_notes();
     SrcPos pos = token.pos;
     Stmt *stmt = NULL;
+
     if (match_keyword(if_keyword)) {
         stmt = parse_stmt_if(pos);
     } else if (match_keyword(while_keyword)) {
@@ -548,6 +549,8 @@ Stmt *parse_stmt(void) {
         }
         expect_token(TOKEN_SEMICOLON);
         stmt = new_stmt_return(pos, expr);
+    } else if (match_keyword(defer_keyword)) {
+        stmt = new_stmt_defer(pos, parse_stmt());
     } else if (match_token(TOKEN_POUND)) {
         Note note = parse_note();
         expect_token(TOKEN_SEMICOLON);

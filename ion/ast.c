@@ -418,4 +418,10 @@ Stmt *new_stmt_expr(SrcPos pos, Expr *expr) {
     return s;
 }
 
+Stmt *new_stmt_defer(SrcPos pos, Stmt* deferred) {
+    Stmt *s = new_stmt(STMT_DEFER, pos);
+    s->deferred = deferred;
+    return s;
+}
+
 #undef AST_DUP

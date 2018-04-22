@@ -265,6 +265,7 @@ typedef enum StmtKind {
     STMT_INIT,
     STMT_EXPR,
     STMT_NOTE,
+    STMT_DEFER,
 } StmtKind;
 
 struct Stmt {
@@ -309,5 +310,6 @@ struct Stmt {
             Typespec *type;
             Expr *expr;
         } init;
+        Stmt * deferred;
     };
 };

@@ -869,6 +869,9 @@ bool resolve_stmt(Stmt *stmt, Type *ret_type, StmtCtx ctx) {
     case STMT_EXPR:
         resolve_expr(stmt->expr);
         return false;
+    case STMT_DEFER:
+        resolve_stmt(stmt->deferred, ret_type, (StmtCtx){0});
+        return false;
     default:
         assert(0);
         return false;

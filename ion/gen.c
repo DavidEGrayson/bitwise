@@ -449,12 +449,46 @@ void gen_expr(Expr *expr) {
 
 void gen_stmt(Stmt *stmt);
 
+enum {
+    MAX_GEN_DEFERS = 1024
+};
+
+Stmt *gen_defers[MAX_GEN_DEFERS];
+Stmt **gen_defers_end = gen_defers;
+
+Stmt **gen_defer_enter(void) {
+    return gen_defers_end;
+}
+
+void gen_defer_push(Stmt *deferred) {
+    if (gen_defers_end == gen_defers + MAX_GEN_DEFERS) {
+        fatal("Too many defer statements");
+    }
+    *gen_defers_end++ = deferred;
+}
+
+void gen_deferred(Stmt **defer_level) {
+    assert(gen_defers <= defer_level && defer_level <= gen_defers_end);
+    Stmt **level = gen_defers_end;
+    while (level != defer_level) {
+        gen_stmt(*--level);
+    }
+}
+
+void gen_defer_leave(Stmt **defer_level) {
+    assert(gen_defers <= defer_level && defer_level <= gen_defers_end);
+    gen_defers_end = defer_level;
+}
+
 void gen_stmt_block(StmtList block) {
     genf("{");
     gen_indent++;
+    Stmt **defer_level = gen_defer_enter();
     for (size_t i = 0; i < block.num_stmts; i++) {
         gen_stmt(block.stmts[i]);
     }
+    gen_deferred(defer_level);
+    gen_defer_leave(defer_level);
     gen_indent--;
     genlnf("}");
 }
@@ -632,6 +666,10 @@ void gen_stmt(Stmt *stmt) {
         genlnf("}");
         break;
     }
+    case STMT_DEFER:
+        genlnf("// deferring");
+        gen_defer_push(stmt->deferred);
+        break;
     default:
         genln();
         gen_simple_stmt(stmt);

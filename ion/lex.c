@@ -20,6 +20,7 @@ const char *for_keyword;
 const char *switch_keyword;
 const char *case_keyword;
 const char *default_keyword;
+const char *defer_keyword;
 
 const char *first_keyword;
 const char *last_keyword;
@@ -61,9 +62,10 @@ void init_keywords(void) {
     KEYWORD(switch);
     KEYWORD(case);
     KEYWORD(default);
+    KEYWORD(defer);
     assert(intern_arena.end == arena_end);
     first_keyword = typedef_keyword;
-    last_keyword = default_keyword;
+    last_keyword = defer_keyword;
 
     foreign_name = str_intern("foreign");
     complete_name = str_intern("complete");
