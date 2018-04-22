@@ -660,7 +660,7 @@ Type *resolve_decl_func(Decl *decl) {
 }
 
 typedef struct StmtCtx {
-    // TODO: add is_return_legal for deferred stuff
+    bool is_return_not_legal;
     bool is_break_legal;
     bool is_continue_legal;
 } StmtCtx;
@@ -747,6 +747,9 @@ void resolve_static_assert(Note note) {
 bool resolve_stmt(Stmt *stmt, Type *ret_type, StmtCtx ctx) {
     switch (stmt->kind) {
     case STMT_RETURN:
+        if (ctx.is_return_not_legal) {
+            fatal_error(stmt->pos, "Illegal return");
+        }
         if (stmt->expr) {
             Operand operand = resolve_expected_expr(stmt->expr, ret_type);
             if (!convert_operand(&operand, ret_type)) {
@@ -871,7 +874,8 @@ bool resolve_stmt(Stmt *stmt, Type *ret_type, StmtCtx ctx) {
         resolve_expr(stmt->expr);
         return false;
     case STMT_DEFER:
-        resolve_stmt(stmt->deferred, ret_type, (StmtCtx){0});
+        ctx = (StmtCtx){ .is_return_not_legal = true };
+        resolve_stmt(stmt->deferred, ret_type, ctx);
         return false;
     default:
         assert(0);

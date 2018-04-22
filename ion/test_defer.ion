@@ -96,3 +96,20 @@ func defer_in_switch() {
     }
   }
 }
+
+func return_in_defer() {
+   defer {
+     // return; // Illegal
+   }
+}
+
+func loop_control_in_defer() {
+  while (1) {
+    defer {
+      // break;    // Illegal
+      // continue; // Illegal
+    }
+    break;
+    continue;
+  }
+}
