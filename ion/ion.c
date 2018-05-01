@@ -21,8 +21,12 @@ void add_package_search_path_range(const char *start, const char *end) {
 void init_package_search_paths(void) {
     const char *ionhome_var = getenv("IONHOME");
     if (!ionhome_var) {
+#ifdef IONHOME
+        ionhome_var = IONHOME;
+#else
         printf("error: Set the environment variable IONHOME to the Ion home directory (where system_packages is located)\n");
         exit(1);
+#endif
     }
     char path[MAX_PATH];
     path_copy(path, ionhome_var);
